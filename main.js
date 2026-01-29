@@ -1,77 +1,121 @@
-const player = [1,2,3,4];
-const computer = [];
-let keepPlaying = true
+let player = [];
+let computer = [];
+let gameOver = false;
 const min = 1;
 const max = 11;
 
-
-
-
 function drawCard() {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function hit() {
-    const card = drawCard();
-    player.push(card)
-
-    if (player > 21) {
-        log("Player busts! Computer wins.");
-        resetGame();
-    }
+function totalRenderer(arr) {
+  return arr.reduce((sum, card) => sum + card, 0);
 }
 
-function stand() {
-    computerTurn();
+function log(message) {
+  const container = document.getElementById("messages");
+  container.insertAdjacentHTML("beforeend", `<p>${message}</p>`);
+  container.scrollTop = container.scrollHeight;
 }
 
-function computerTurn() {
-    while (computer < 17) {
-        const card = drawCard();
-        computer += card;
-        log(`Computer draws ${card}. Total: ${computer}`);
-    }
-    determineWinner();
-}
+function inject(showComputer = false) {
+  const container = document.getElementById("container");
+  const playerTotal = totalRenderer(player);
+  const computerTotal = totalRenderer(computer);
 
-function determineWinner() {
-    if (computer > 21 || player > computer) {
-        log("Player wins!");
-    } else if (player < computer) {
-        log("Computer wins!");
-    } else {
-        log("It's a tie!");
-    }
-    resetGame();
+  const renderCards = (cards, hidden = false) => {
+    if (!cards.length) return `<div class="card empty">-</div>`;
+    return cards
+      .map(card => `<div class="card">${hidden ? "🂠" : card}</div>`)
+      .join("");
+  };
+
+  container.innerHTML = `
+    <div class="player">
+      <h3>Player</h3>
+      <div class="cards">${renderCards(player)}</div>
+      <p>Total: ${playerTotal}</p>
+    </div>
+    <div class="computer">
+      <h3>Computer</h3>
+      <div class="cards">${renderCards(computer, !showComputer)}</div>
+      <p>Total: ${showComputer ? computerTotal : "?"}</p>
+    </div>
+  `;
 }
 
 function resetGame() {
-    player = 0;
-    computer = 0;
-    log("New game started");
+  player = [];
+  computer = [];
+  gameOver = false;
+  inject();
+  log("Game reset. Press 'Start Game' to play!");
 }
 
+function startGame() {
+  resetGame();
+  player.push(drawCard(), drawCard());
+  computer.push(drawCard(), drawCard());
+  log("Game started!");
+  inject();
+}
 
-document.getElementById("stopBtn").addEventListener("click", () => {
-  running = false;
-});
+function hit() {
+  if (gameOver) return;
+  const card = drawCard();
+  player.push(card);
+  log(`Player draws ${card}. Total: ${totalRenderer(player)}`);
+  inject();
+  const total = totalRenderer(player);
+  if (total > 21) {
+    log("Player busts! Computer wins.");
+    gameOver = true;
+    inject(true);
+  }
+}
 
-function totalRenderer(arr) {
-    let total = 0;
+function stand() {
+  if (gameOver) return;
+  computerTurn();
+}
 
-    for (let i = 0; i < arr.length; i++) {
-        total += arr[i];
+function computerTurn() {
+  gameOver = true;
+  let total = totalRenderer(computer);
+
+  function drawStep() {
+    total = totalRenderer(computer);
+    if (total < 17) {
+      const card = drawCard();
+      computer.push(card);
+      log(`Computer draws ${card}. Total: ${totalRenderer(computer)}`);
+      inject();
+      setTimeout(drawStep, 1000);
+    } else {
+      determineWinner();
+      inject(true);
     }
+  }
 
-    return total;
+  drawStep();
 }
 
+function determineWinner() {
+  const playerTotal = totalRenderer(player);
+  const computerTotal = totalRenderer(computer);
 
-function inject(){
-    const container = document.getElementById("container")
-    container.insertAdjacentHTML(
-        "afterbegin"
-        `<div id="Pcard"></div>`
-    )
+  if (playerTotal > 21) {
+    log("Computer wins!");
+  } else if (computerTotal > 21 || playerTotal > computerTotal) {
+    log("Player wins!");
+  } else if (playerTotal < computerTotal) {
+    log("Computer wins!");
+  } else {
+    log("It's a tie!");
+  }
 }
 
+document.querySelector(".startBtn").addEventListener("click", startGame);
+document.querySelector(".hit").addEventListener("click", hit);
+document.querySelector(".stand").addEventListener("click", stand);
+document.querySelector(".stopBtn").addEventListener("click", resetGame);
