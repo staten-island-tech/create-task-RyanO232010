@@ -1,7 +1,8 @@
 let player = [];
 let computer = [];
+let winrates = [];
 let gameOver = false;
-const min = 1;
+const min = 2;
 const max = 11;
 
 function drawCard() {
@@ -9,13 +10,15 @@ function drawCard() {
 }
 
 function totalRenderer(arr) {
-  return arr.reduce((sum, card) => sum + card, 0);
-}
+  let total = arr.reduce((sum, card) => sum + card, 0);
+  let aces = arr.filter((card) => card === 11).length;
 
-function log(message) {
-  const container = document.getElementById("container");
-  container.insertAdjacentHTML("beforeend", `<p>${message}</p>`);
-  container.scrollTop = container.scrollHeight;
+  while (total > 21 && aces > 0) {
+    total -= 10;
+    aces--;
+  }
+
+  return total;
 }
 
 function inject(showComputer = false) {
@@ -25,8 +28,14 @@ function inject(showComputer = false) {
 
   const renderCards = (cards, hidden = false) => {
     if (!cards.length) return `<div class="card empty">-</div>`;
+
     return cards
-      .map((card) => `<div class="card">${hidden ? "🂠" : card}</div>`)
+      .map((card, index) => {
+        if (hidden && index === 0) {
+          return `<div class="card">?</div>`;
+        }
+        return `<div class="card">${card}</div>`;
+      })
       .join("");
   };
 
@@ -40,7 +49,6 @@ function inject(showComputer = false) {
       <h3>Computer</h3>
       <div class="cards">${renderCards(computer, !showComputer)}</div>
       <p>Total: ${showComputer ? computerTotal : "?"}</p>
- 
     </div>
   `;
 }
@@ -50,46 +58,37 @@ function resetGame() {
   computer = [];
   gameOver = false;
   inject();
-  log("Game reset. Press 'Start Game' to play!");
 }
 
 function startGame() {
   const results = document.getElementById("results");
-  results.innerHTML = `
-    <h3></h3>
-  `;
-  resetGame()
+  results.innerHTML = `<h3></h3>`;
+  resetGame();
   player.push(drawCard(), drawCard());
   computer.push(drawCard(), drawCard());
-  log("Game started!");
   inject();
 }
 
 function hit() {
   if (gameOver) return;
+
   const card = drawCard();
   player.push(card);
-  log(`Player draws ${card}. Total: ${totalRenderer(player)}`);
-  inject();
+
   const total = totalRenderer(player);
+  inject();
+
   if (total > 21) {
-    const results = document.getElementById("results");
-    results.innerHTML = `
-    <h3>Player busts! Computer wins.</h3>
-  `;
-    console.log("Player busts! Computer wins.");
+    document.getElementById("results").innerHTML =
+      `<h3>Player busts! Computer wins.</h3>`;
     gameOver = true;
     inject(true);
   } else if (total === 21) {
-    const results = document.getElementById("results");
-    results.innerHTML = `
-    <h3>Player has drawn BlackJack!</h3>
-  `;
-    console.log("Player has drawn BlackJack!");
+    document.getElementById("results").innerHTML =
+      `<h3>Player has drawn BlackJack!</h3>`;
     gameOver = true;
     inject(true);
   }
-  console.log("hit");
 }
 
 function stand() {
@@ -99,31 +98,20 @@ function stand() {
 
 function computerTurn() {
   gameOver = true;
-  let total = totalRenderer(computer);
 
   function drawStep() {
-    total = totalRenderer(computer);
+    const total = totalRenderer(computer);
     if (total < 17) {
-      const card = drawCard();
-      computer.push(card);
-      log(`Computer draws ${card}. Total: ${totalRenderer(computer)}`);
-      inject();
+      computer.push(drawCard());
+      inject(true);
       setTimeout(drawStep, 1000);
     } else if (total === 21) {
-      const results = document.getElementById("results");
-      results.innerHTML = `
-    <h3>Computer has drawn BlackJack!</h3>
-  `;
-      console.log("Computer has drawn BlackJack!");
-
+      document.getElementById("results").innerHTML =
+        `<h3>Computer has drawn BlackJack!</h3>`;
       inject(true);
     } else if (total > 21) {
-      const results = document.getElementById("results");
-      results.innerHTML = `
-    <h3>Computer has busted! Player Wins!");</h3>
-  `;
-      console.log("Computer has busted! Player Wins!");
-
+      document.getElementById("results").innerHTML =
+        `<h3>Computer has busted! Player Wins!</h3>`;
       inject(true);
     } else {
       determineWinner();
@@ -137,31 +125,19 @@ function computerTurn() {
 function determineWinner() {
   const playerTotal = totalRenderer(player);
   const computerTotal = totalRenderer(computer);
+  const results = document.getElementById("results");
 
   if (playerTotal > 21) {
-    const results = document.getElementById("results");
-    results.innerHTML = `
-    <h3>Player busts! Computer wins!</h3>
-  `;
+    results.innerHTML = `<h3>Player busts! Computer wins!</h3>`;
   } else if (computerTotal > 21 || playerTotal > computerTotal) {
-    const results = document.getElementById("results");
-    results.innerHTML = `
-    <h3>Player wins!</h3>
-  `;
+    results.innerHTML = `<h3>Player wins!</h3>`;
   } else if (playerTotal < computerTotal) {
-    const results = document.getElementById("results");
-    results.innerHTML = `
-    <h3>Computer wins!</h3>
-  `;
+    results.innerHTML = `<h3>Computer wins!</h3>`;
   } else {
-    const results = document.getElementById("results");
-    results.innerHTML = `
-    <h3>It's a tie!</h3>
-  `;
+    results.innerHTML = `<h3>It's a tie!</h3>`;
   }
 }
 
 document.querySelector(".startBtn").addEventListener("click", startGame);
 document.querySelector(".hit").addEventListener("click", hit);
 document.querySelector(".stand").addEventListener("click", stand);
-

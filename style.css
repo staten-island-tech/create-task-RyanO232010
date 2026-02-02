@@ -80,6 +80,7 @@ button:active {
   justify-content: center;
   background: white;
   font-weight: bold;
+  color: black;
 }
 
 .card.empty {
